@@ -1,6 +1,8 @@
 #!/bin/bash
-# SukiSU-Ultra (builtin / manual hooks) build for Valeryn 4.19 (SM6115)
-# Based on Joe7500's build_ksun1.sh -- same toolchain, same 3 patch commits.
+# SukiSU (builtin branch) build for Valeryn 4.19 (SM6115) -- v2
+# Based on Joe7500's build_ksun1.sh (same toolchain + AnyKernel3 packaging).
+# v2: NO manual hook commits. Uses SukiSU's CONFIG_KSU_HACK_ARM64_BRANCH_LINK
+#     (recommended by the SukiSU docs for 4.19+ ARM64). SUSFS is OFF for now.
 
 DEFCONFIG="vendor/bengal-perf_defconfig"
 ZIPNAME=4.19-A16-valeryn-sukisu-`date +'%d.%m.%y-%H%M'`.zip
@@ -16,23 +18,19 @@ ln -s prebuilts/clang/host/linux-x86/clang-stablekern/ toolchain
 tar xf AnyKernel3.tar.xz || exit 1
 PATH=$PWD/toolchain/bin:$PATH
 
-# Apply changes (path_umount backport, SusFS 1.5.12 backport, manual hooks)
+# Only the path_umount backport (SukiSU's umount code can use it)
 git cherry-pick 9ddea125151ce61abbd05a84e8de72f8fc45da57 || exit 1
-git cherry-pick f0b967626c361d95969dd962cd22dffe1ebe510d || exit 1
-git cherry-pick dbc26ce49d11c5d1293dedb5f647dcdacf4432dd
-grep -vE '<<<|===|>>>' arch/arm64/configs/vendor/bengal-perf_defconfig > arch/arm64/configs/vendor/bengal-perf_defconfig.1
-mv arch/arm64/configs/vendor/bengal-perf_defconfig.1 arch/arm64/configs/vendor/bengal-perf_defconfig
-git add arch/arm64/configs/vendor/bengal-perf_defconfig
-git cherry-pick --continue --no-edit
 
-# Add SukiSU-Ultra (builtin branch = manual hooks, no kprobes)
-curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s builtin || exit 1
+# Add SukiSU "builtin" branch. Official source first, GitHub mirror as fallback.
+curl -fLSs "https://git.zako.shirkneko.top:20004/shirkneko/SukiSU/raw/branch/main/kernel/setup.sh" -o setup.sh \
+  || curl -fLSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" -o setup.sh \
+  || exit 1
+bash setup.sh builtin || exit 1
 
-# Stage 1: root only, SUSFS switched OFF (add SUSFS later once this boots)
+# Kernel config
 echo "CONFIG_KSU=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
-echo "CONFIG_KSU_MANUAL_HOOK=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
-echo "# CONFIG_KPROBES is not set" >> arch/arm64/configs/vendor/bengal-perf_defconfig
-echo "CONFIG_HAVE_SYSCALL_TRACEPOINTS=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
+echo "CONFIG_KALLSYMS=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
+echo "CONFIG_KSU_HACK_ARM64_BRANCH_LINK=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
 echo "# CONFIG_KSU_SUSFS is not set" >> arch/arm64/configs/vendor/bengal-perf_defconfig
 
 echo "-perf" > localversion
