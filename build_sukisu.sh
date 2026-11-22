@@ -39,7 +39,11 @@ echo "-perf" > localversion
 rm -rf out/
 mkdir out/
 make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 $DEFCONFIG
-make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j$(nproc) || exit 1
+make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j$(nproc) || {
+  echo "=== BUILD FAILED: re-running single-threaded to show the real error ==="
+  make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j1 2>&1 | tail -n 60
+  exit 1
+}
 make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j$(nproc) Image.gz || exit 1
 make O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 -j$(nproc) dtbs || exit 1
 
