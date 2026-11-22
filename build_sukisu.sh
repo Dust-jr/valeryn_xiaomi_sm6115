@@ -34,6 +34,13 @@ grep -rl "uapi/linux/mount.h" drivers/kernelsu/ | xargs -r sed -i 's|<uapi/linux
 # show whether the code really uses static_call (for debugging)
 grep -rn "static_call" drivers/kernelsu/ || true
 
+# KSU_NO_PREINIT is also defined on the compiler command line -> guard the define
+sed -i 's|^#define KSU_NO_PREINIT[[:space:]]*$|#ifndef KSU_NO_PREINIT\n#define KSU_NO_PREINIT\n#endif|' drivers/kernelsu/preinit/common/preinit.h
+# 4.19 access_ok() takes 3 arguments (type, addr, size)
+grep -rl "access_ok(" drivers/kernelsu/ | xargs -r sed -i 's/access_ok(\([^V]\)/access_ok(VERIFY_READ, \1/g'
+# harmless warnings (e.g. unused variables) must not stop the build
+echo 'ccflags-y += -Wno-error' >> drivers/kernelsu/Makefile
+
 # Kernel config
 echo "CONFIG_KSU=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
 echo "CONFIG_KALLSYMS=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
