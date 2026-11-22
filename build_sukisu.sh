@@ -27,6 +27,13 @@ curl -fLSs "https://git.zako.shirkneko.top:20004/shirkneko/SukiSU/raw/branch/mai
   || exit 1
 bash setup.sh builtin || exit 1
 
+# --- 4.19 compatibility fixes (these headers only exist on 5.10+ kernels) ---
+grep -rl "linux/static_call.h" drivers/kernelsu/ | xargs -r sed -i 's|#include <linux/static_call.h>|/* disabled for 4.19 */|'
+grep -rl "linux/hex.h" drivers/kernelsu/ | xargs -r sed -i 's|<linux/hex.h>|<linux/kernel.h>|'
+grep -rl "uapi/linux/mount.h" drivers/kernelsu/ | xargs -r sed -i 's|<uapi/linux/mount.h>|<linux/fs.h>|'
+# show whether the code really uses static_call (for debugging)
+grep -rn "static_call" drivers/kernelsu/ || true
+
 # Kernel config
 echo "CONFIG_KSU=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
 echo "CONFIG_KALLSYMS=y" >> arch/arm64/configs/vendor/bengal-perf_defconfig
