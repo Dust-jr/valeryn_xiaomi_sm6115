@@ -6,12 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        detached: true
-
     - name: Update environment
       run: sudo apt update -y
 
@@ -19,8 +16,8 @@ jobs:
       run: sudo apt install -y git build-essential zip unzip curl
 
     - name: Get script
-      run: curl -o build_actions.sh -L https://raw.githubusercontent.com/Joe7500/valeryn_xiaomi_sm6115/refs/heads/build-actions/build_actions.sh
- 
+      run: curl -o build_actions.sh -L https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/build-actions/build_actions.sh
+
     - name: Build kernel
       run: bash build_actions.sh
       continue-on-error: true
@@ -30,9 +27,8 @@ jobs:
       with:
         files: |
           4.19*.zip
-          *kernel-prebuilt*.tar.xz
-        name: kernel chime ${{ github.run_id }}
+        name: kernel sukisu ${{ github.run_id }}
         tag_name: ${{ github.run_id }}
-        body: chime kernel by @joe_7500
+        body: SukiSU kernel build
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
